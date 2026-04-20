@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel | TruthLens{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">⚙️ Admin Panel</h1>
+        <p class="page-subtitle">Model management, API keys, and system overview</p>
+      </div>
+    </div>
+
+    <!-- Model Metrics -->
+    <div class="admin-grid">
+      <div class="glass-card admin-card">
+        <h2 class="card-title">🤖 Model Status</h2>
+        <div class="model-status-grid">
+          <div class="model-status-item">
+            <span class="status-label">Trained</span>
+            <span class="status-badge {% if health.trained %}badge-success{% else %}badge-danger{% endif %}">
+              {{ 'Yes' if health.trained else 'No' }}
+            </span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">Logistic F1</span>
+            <span class="status-value">{{ (model_meta.logistic_f1 * 100) | round(1) if model_meta.logistic_f1 else 'N/A' }}%</span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">XGBoost F1</span>
+            <span class="status-value">{{ (model_meta.xgboost_f1 * 100) | round(1) if model_meta.xgboost_f1 else 'N/A' }}%</span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">Train Samples</span>
+            <span class="status-value">{{ model_meta.train_samples | default('N/A') }}</span>
+          </div>
+        </div>
+        <form action="{{ url_for('web.admin_retrain') }}" method="POST" style="margin-top: 1rem;">
+          <button type="submit" class="btn btn-primary" onclick="return confirm('This will retrain the model. Continue?')">
+            🔄 Retrain Model
+          </button>
+        </form>
+      </div>
+
+      <!-- Platform Stats -->
+      <div class="glass-card admin-card">
+        <h2 class="card-title">📊 Platform Stats</h2>
+        <div class="model-status-grid">
+          <div class="model-status-item">
+            <span class="status-label">Total Submissions</span>
+            <span class="status-value">{{ stats.total }}</span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">Avg. Score</span>
+            <span class="status-value">{{ (stats.avg_score * 100) | int }}%</span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">Last 7 Days</span>
+            <span class="status-value">{{ stats.recent_7_days }}</span>
+          </div>
+          <div class="model-status-item">
+            <span class="status-label">Active Users</span>
+            <span class="status-value">{{ users | length }}</span>
+          </div>
+        </div>
+        <div class="label-dist">
+          {% for label, count in stats.label_counts.items() %}
+            <div class="label-dist-item">
+              <span class="label-badge-sm label-{{ label }}">{{ label.replace('_', ' ') }}</span>
+              <span class="label-dist-count">{{ count }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- API Keys Management -->
+    <div class="glass-card" style="margin-top: 2rem;">
+      <div class="card-header-row">
+        <h2 class="card-title">🔑 API Key Management</h2>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('createKeyForm').classList.toggle('hidden')">
+          + Create Key
+        </button>
+      </div>
+
+      <form id="createKeyForm" action="{{ url_for('web.admin_create_key') }}" method="POST" class="hidden create-key-form">
+        <input type="text" name="name" placeholder="Key name (e.g. Partner A)" class="form-input" required />
+        <input type="number" name="user_id" placeholder="User ID" value="{{ current_user.id }}" class="form-input" required />
+        <button type="submit" class="btn btn-primary">Generate</button>
+      </form>
+
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Prefix</th>
+            <th>User ID</th>
+            <th>Rate Limit</th>
+            <th>Status</th>
+            <th>Last Used</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key in api_keys %}
+          <tr>
+            <td>{{ key.name }}</td>
+            <td class="mono">{{ key.prefix }}****</td>
+            <td>{{ key.user_id }}</td>
+            <td>{{ key.rate_limit }}/min</td>
+            <td>
+              <span class="status-badge {% if key.is_active %}badge-success{% else %}badge-danger{% endif %}">
+                {{ 'Active' if key.is_active else 'Revoked' }}
+              </span>
+            </td>
+            <td>{{ key.last_used_at.strftime('%b %d, %H:%M') if key.last_used_at else 'Never' }}</td>
+            <td>
+              {% if key.is_active %}
+              <form action="{{ url_for('web.admin_revoke_key', key_id=key.id) }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn-danger-sm" onclick="return confirm('Revoke this key?')">Revoke</button>
+              </form>
+              {% else %}
+              <span class="revoked-text">Revoked</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="empty-cell">No API keys yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Users -->
+    <div class="glass-card" style="margin-top: 2rem;">
+      <h2 class="card-title">👥 Users</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{{ user.email }}</td>
+            <td><span class="role-badge role-{{ user.role }}">{{ user.role }}</span></td>
+            <td>{{ user.created_at.strftime('%b %d, %Y') if user.created_at else '—' }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="empty-cell">No users.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

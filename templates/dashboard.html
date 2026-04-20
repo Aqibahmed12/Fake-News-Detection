@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | TruthLens{% endblock %}
+
+{% block content %}
+<section class="dashboard-section">
+  <div class="container">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Your Dashboard</h1>
+        <p class="page-subtitle">Welcome back, <strong>{{ current_user.username }}</strong></p>
+      </div>
+      <div class="header-actions">
+        <a href="{{ url_for('web.export_csv') }}" class="btn btn-secondary">⬇ Export CSV</a>
+        <a href="{{ url_for('web.index') }}" class="btn btn-primary">+ New Check</a>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+      <div class="stat-card glass-card">
+        <div class="stat-card-icon">🔍</div>
+        <div class="stat-card-value">{{ stats.total }}</div>
+        <div class="stat-card-label">Total Checks</div>
+      </div>
+      <div class="stat-card glass-card">
+        <div class="stat-card-icon">📈</div>
+        <div class="stat-card-value">{{ (stats.avg_score * 100) | int }}%</div>
+        <div class="stat-card-label">Avg. Score</div>
+      </div>
+      <div class="stat-card glass-card">
+        <div class="stat-card-icon">📅</div>
+        <div class="stat-card-value">{{ stats.recent_7_days }}</div>
+        <div class="stat-card-label">Last 7 Days</div>
+      </div>
+      <div class="stat-card glass-card">
+        <div class="stat-card-icon">🚨</div>
+        <div class="stat-card-value">{{ stats.label_counts.get('FAKE', 0) + stats.label_counts.get('LIKELY_FAKE', 0) }}</div>
+        <div class="stat-card-label">Flagged Items</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+      <!-- Label Distribution Chart -->
+      <div class="chart-card glass-card">
+        <h2 class="card-title">Label Distribution</h2>
+        <div class="chart-wrapper">
+          <canvas id="labelChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent History -->
+      <div class="history-card glass-card">
+        <h2 class="card-title">Recent Submissions</h2>
+        {% if history %}
+        <div class="history-table-wrapper">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Score</th>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in history %}
+              <tr>
+                <td>
+                  <span class="score-pill" style="--score-color: {{ score_color(sub.score) }};">
+                    {{ (sub.score * 100) | int }}%
+                  </span>
+                </td>
+                <td>
+                  <span class="label-badge-sm label-{{ sub.label }}">{{ sub.label.replace('_', ' ') }}</span>
+                </td>
+                <td class="type-cell">{{ sub.source_type | upper }}</td>
+                <td class="date-cell">{{ sub.created_at.strftime('%b %d, %H:%M') if sub.created_at else '—' }}</td>
+                <td>
+                  <a href="{{ url_for('web.result', result_id=sub.id) }}" class="view-link">View →</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>No submissions yet. <a href="{{ url_for('web.index') }}">Run your first check!</a></p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const labelOrder = JSON.parse('{{ label_order | tojson | safe }}');
+const labelCounts = JSON.parse('{{ label_counts | tojson | safe }}');
+const labelColors = ['#22c55e', '#86efac', '#facc15', '#f97316', '#ef4444'];
+
+window.addEventListener('DOMContentLoaded', () => {
+  const ctx = document.getElementById('labelChart');
+  if (ctx && labelCounts.some(v => v > 0)) {
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labelOrder.map(l => l.replace('_', ' ')),
+        datasets: [{
+          data: labelCounts,
+          backgroundColor: labelColors,
+          borderColor: 'rgba(0,0,0,0.3)',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } }
+          }
+        }
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

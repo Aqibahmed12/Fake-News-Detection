@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Register | TruthLens{% endblock %}
+{% block content %}
+<section class="auth-section">
+  <div class="auth-container">
+    <div class="auth-card glass-card">
+      <div class="auth-header">
+        <a href="{{ url_for('web.index') }}" class="auth-logo">
+          <span class="brand-icon">🔍</span>
+          <span class="brand-name">TruthLens</span>
+        </a>
+        <h1 class="auth-title">Create your account</h1>
+        <p class="auth-subtitle">Start verifying news instantly</p>
+      </div>
+
+      <form action="{{ url_for('web.register') }}" method="POST" class="auth-form">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input type="text" id="username" name="username" class="form-input" placeholder="johndoe" required autocomplete="username" minlength="3" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="you@example.com" required autocomplete="email" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <div class="password-wrapper">
+            <input type="password" id="password" name="password" class="form-input" placeholder="Min. 6 characters" required autocomplete="new-password" minlength="6" />
+            <button type="button" class="pwd-toggle" onclick="togglePwd('password')">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+      </form>
+
+      <div class="auth-footer">
+        <p>Already have an account? <a href="{{ url_for('web.login') }}">Sign in</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>function togglePwd(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}</script>
+{% endblock %}

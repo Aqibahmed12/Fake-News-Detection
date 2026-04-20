@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}TruthLens — Detect Fake News Instantly{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+  </div>
+  <div class="hero-container">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      ML-Powered Real-Time Detection
+    </div>
+    <h1 class="hero-title">
+      Can You Trust<br>
+      <span class="gradient-text">This Article?</span>
+    </h1>
+    <p class="hero-subtitle">
+      Paste any news article, enter a URL, or upload a file. Our AI analyses language patterns,
+      sentiment, and linguistic cues to instantly score its credibility.
+    </p>
+
+    <!-- Stats row -->
+    <div class="hero-stats">
+      <div class="stat-chip">
+        <span class="stat-number">{{ stats.get('total', 0) | default(0) }}</span>
+        <span class="stat-label">Articles Scanned</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-chip">
+        <span class="stat-number">&lt;500ms</span>
+        <span class="stat-label">Avg. Response</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-chip">
+        <span class="stat-number">92%+</span>
+        <span class="stat-label">F1 Accuracy</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Submission Card -->
+<section class="submit-section">
+  <div class="container">
+    <div class="submit-card glass-card">
+
+      <!-- Input Type Tabs -->
+      <div class="input-tabs" role="tablist">
+        <button class="tab-btn active" role="tab" data-tab="text" id="tab-text" aria-selected="true">
+          <span class="tab-icon">📝</span> Paste Text
+        </button>
+        <button class="tab-btn" role="tab" data-tab="url" id="tab-url" aria-selected="false">
+          <span class="tab-icon">🔗</span> Enter URL
+        </button>
+        <button class="tab-btn" role="tab" data-tab="file" id="tab-file" aria-selected="false">
+          <span class="tab-icon">📄</span> Upload File
+        </button>
+      </div>
+
+      <form id="detectForm" action="{{ url_for('web.detect') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="source_type" id="sourceType" value="text" />
+
+        <!-- Text Panel -->
+        <div class="tab-panel active" id="panel-text">
+          <div class="textarea-wrapper">
+            <textarea
+              name="text"
+              id="articleText"
+              class="article-textarea"
+              placeholder="Paste your news article or text snippet here... (minimum 50 characters)"
+              rows="10"
+              maxlength="10000"
+            ></textarea>
+            <div class="char-count">
+              <span id="charCount">0</span> / 10,000 characters
+              <span id="charWarning" class="char-warning hidden"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- URL Panel -->
+        <div class="tab-panel hidden" id="panel-url">
+          <div class="url-input-wrapper">
+            <span class="url-icon">🔗</span>
+            <input
+              type="url"
+              name="url"
+              id="articleUrl"
+              class="url-input"
+              placeholder="https://example.com/news-article"
+            />
+          </div>
+          <p class="panel-hint">We'll fetch and analyse the article text for you. The URL must be publicly accessible.</p>
+        </div>
+
+        <!-- File Panel -->
+        <div class="tab-panel hidden" id="panel-file">
+          <div class="file-drop-zone" id="fileDropZone">
+            <div class="file-drop-icon">📁</div>
+            <p class="file-drop-text">Drag & drop a .txt file here</p>
+            <p class="file-drop-sub">or click to browse</p>
+            <input type="file" name="file" id="fileInput" accept=".txt,.pdf" class="file-input-hidden" />
+          </div>
+          <p id="fileName" class="file-name hidden"></p>
+        </div>
+
+        <!-- Model Selection -->
+        <div class="model-row">
+          <label class="model-label">Model:</label>
+          <div class="model-options">
+            <label class="model-option">
+              <input type="radio" name="model" value="logistic" checked />
+              <span class="model-chip">
+                <span class="model-chip-dot fast"></span>
+                Fast (Logistic)
+              </span>
+            </label>
+            <label class="model-option">
+              <input type="radio" name="model" value="xgboost" />
+              <span class="model-chip">
+                <span class="model-chip-dot accurate"></span>
+                Accurate (XGBoost)
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary btn-lg btn-full" id="submitBtn">
+          <span class="btn-text">Analyse Article</span>
+          <span class="btn-icon">→</span>
+          <span class="btn-loader hidden">Analysing<span class="dots">...</span></span>
+        </button>
+      </form>
+    </div>
+
+    <!-- How It Works -->
+    <div class="how-it-works">
+      <h2 class="section-title">How TruthLens Works</h2>
+      <div class="steps-grid">
+        <div class="step-card glass-card">
+          <div class="step-number">01</div>
+          <div class="step-icon">🧹</div>
+          <h3 class="step-title">NLP Preprocessing</h3>
+          <p class="step-desc">Text is cleaned, tokenised, lemmatised, and stop-words are removed using spaCy.</p>
+        </div>
+        <div class="step-card glass-card">
+          <div class="step-number">02</div>
+          <div class="step-icon">🧠</div>
+          <h3 class="step-title">Feature Extraction</h3>
+          <p class="step-desc">We extract 17+ features: TF-IDF vectors, sentiment, readability, entity density, and more.</p>
+        </div>
+        <div class="step-card glass-card">
+          <div class="step-number">03</div>
+          <div class="step-icon">⚡</div>
+          <h3 class="step-title">ML Classification</h3>
+          <p class="step-desc">Your choice of Logistic Regression or XGBoost predicts a credibility score in milliseconds.</p>
+        </div>
+        <div class="step-card glass-card">
+          <div class="step-number">04</div>
+          <div class="step-icon">📊</div>
+          <h3 class="step-title">Explainable Results</h3>
+          <p class="step-desc">See which specific features most influenced the score with our Explainable AI panel.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Label Scale -->
+    <div class="label-scale glass-card">
+      <h2 class="section-title">Credibility Scale</h2>
+      <div class="scale-bar">
+        <div class="scale-segment" style="background: #ef4444;">
+          <span class="scale-label">FAKE</span>
+          <span class="scale-range">0–20%</span>
+        </div>
+        <div class="scale-segment" style="background: #f97316;">
+          <span class="scale-label">LIKELY FAKE</span>
+          <span class="scale-range">20–40%</span>
+        </div>
+        <div class="scale-segment" style="background: #facc15;">
+          <span class="scale-label">UNCERTAIN</span>
+          <span class="scale-range">40–60%</span>
+        </div>
+        <div class="scale-segment" style="background: #86efac;">
+          <span class="scale-label">LIKELY REAL</span>
+          <span class="scale-range">60–80%</span>
+        </div>
+        <div class="scale-segment" style="background: #22c55e;">
+          <span class="scale-label">REAL</span>
+          <span class="scale-range">80–100%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{% endblock %}

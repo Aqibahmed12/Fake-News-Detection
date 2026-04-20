@@ -1,0 +1,28 @@
+# Environment Variables
+.env
+.env.*
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Virtual Environment
+venv/
+env/
+.venv/
+
+# IDE and Project
+.vscode/
+.idea/
+
+# Local databases and models cache
+instance/fakenews.db
+models_cache/
+*.sqlite3
+*.db

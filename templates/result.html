@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}Result — {{ sub.label }} | TruthLens{% endblock %}
+
+{% block content %}
+<section class="result-section">
+  <div class="container">
+
+    <!-- Back button -->
+    <a href="{{ url_for('web.index') }}" class="back-link">← Analyse Another Article</a>
+
+    <div class="result-grid">
+
+      <!-- Score Card -->
+      <div class="score-card glass-card">
+        <h1 class="result-heading">Credibility Score</h1>
+
+        <!-- Gauge -->
+        <div class="gauge-container">
+          <canvas id="gaugeCanvas" width="280" height="160"></canvas>
+          <div class="gauge-score">
+            <span class="gauge-number" id="gaugeNumber">0</span>
+            <span class="gauge-pct">%</span>
+          </div>
+        </div>
+
+        <!-- Label Badge -->
+        <div class="label-badge" style="background: {{ color }}22; border-color: {{ color }}; color: {{ color }};">
+          {{ sub.label.replace('_', ' ') }}
+        </div>
+
+        <!-- Confidence -->
+        <div class="confidence-row">
+          <span class="conf-label">Model Confidence</span>
+          <div class="conf-bar-track">
+            <div class="conf-bar-fill" style="width: {{ (sub.confidence * 100) | int }}%; background: {{ color }};"></div>
+          </div>
+          <span class="conf-value">{{ (sub.confidence * 100) | int }}%</span>
+        </div>
+
+        <!-- Meta -->
+        <div class="result-meta">
+          <div class="meta-item">
+            <span class="meta-label">Model</span>
+            <span class="meta-value">{{ sub.model_used | capitalize }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Processed</span>
+            <span class="meta-value">{{ sub.processing_ms }}ms</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">ID</span>
+            <span class="meta-value mono">{{ sub.id[:8] }}…</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="result-actions">
+          <button class="btn btn-secondary" onclick="copyLink('{{ request.url }}')">
+            🔗 Copy Link
+          </button>
+          <a href="{{ url_for('web.index') }}" class="btn btn-primary">New Check</a>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="result-right">
+
+        <!-- Features Panel -->
+        {% if features %}
+        <div class="features-card glass-card">
+          <h2 class="card-title">
+            <span class="card-title-icon">🔬</span>
+            Explainable AI — Top Features
+          </h2>
+          <p class="card-subtitle">Factors that most influenced this prediction</p>
+          <div class="features-list">
+            {% for feat in features %}
+            <div class="feature-item feature-{{ feat.impact }}">
+              <div class="feature-header">
+                <span class="feature-name">{{ feat.feature }}</span>
+                <span class="feature-value">{{ feat.value }}</span>
+                <span class="feature-impact-badge impact-{{ feat.impact }}">
+                  {% if feat.impact == 'positive' %}▲ Credibility{% elif feat.impact == 'negative' %}▼ Concern{% else %}— Neutral{% endif %}
+                </span>
+              </div>
+              <p class="feature-desc">{{ feat.description }}</p>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Text Preview -->
+        {% if sub.input_text %}
+        <div class="text-preview glass-card">
+          <h2 class="card-title">
+            <span class="card-title-icon">📄</span>
+            Submitted Text
+          </h2>
+          <div class="text-preview-content">
+            {{ sub.input_text[:600] }}{% if sub.input_text|length > 600 %}…{% endif %}
+          </div>
+        </div>
+        {% elif sub.input_url %}
+        <div class="text-preview glass-card">
+          <h2 class="card-title">
+            <span class="card-title-icon">🔗</span>
+            Analysed URL
+          </h2>
+          <a href="{{ sub.input_url }}" target="_blank" rel="noopener" class="url-display">
+            {{ sub.input_url }}
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- What This Means -->
+        <div class="interpretation-card glass-card">
+          <h2 class="card-title">
+            <span class="card-title-icon">💡</span>
+            What Does This Mean?
+          </h2>
+          {% if sub.label == 'REAL' %}
+          <p class="interpretation-text positive">The content shows strong characteristics of credible reporting — formal language, appropriate entities, balanced sentiment, and no sensational markers.</p>
+          {% elif sub.label == 'LIKELY_REAL' %}
+          <p class="interpretation-text positive">The content appears likely credible, though some stylistic elements warrant a second look before sharing.</p>
+          {% elif sub.label == 'UNCERTAIN' %}
+          <p class="interpretation-text neutral">The model is not confident — the content has mixed signals. We recommend cross-referencing with trusted sources.</p>
+          {% elif sub.label == 'LIKELY_FAKE' %}
+          <p class="interpretation-text negative">Several indicators of unreliable content were detected. Verify with official or peer-reviewed sources before acting on this.</p>
+          {% else %}
+          <p class="interpretation-text negative">Strong indicators of misinformation detected: excessive sensational language, emotional manipulation, and low entity density. Do not share without thorough fact-checking.</p>
+          {% endif %}
+          <p class="disclaimer">⚠️ This score is probabilistic guidance only and is not a legal or journalistic determination.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const SCORE_PCT = {{ score_pct }};
+const LABEL_COLOR = "{{ color }}";
+window.addEventListener('DOMContentLoaded', () => {
+  animateGauge(SCORE_PCT, LABEL_COLOR);
+  animateNumber(document.getElementById('gaugeNumber'), SCORE_PCT);
+});
+
+function animateGauge(scorePct, color) {
+  const canvas = document.getElementById('gaugeCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 140, cy = 145, r = 110;
+  const startAngle = Math.PI;
+  const endAngle = 2 * Math.PI;
+  const targetAngle = startAngle + (scorePct / 100) * Math.PI;
+  let curAngle = startAngle;
+
+  function drawArc(angle) {
+    ctx.clearRect(0, 0, 280, 160);
+    // Background track
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    // Colour fill
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, startAngle, angle);
+    ctx.lineWidth = 18;
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  function animate() {
+    if (curAngle < targetAngle) {
+      curAngle = Math.min(curAngle + 0.03, targetAngle);
+      drawArc(curAngle);
+      requestAnimationFrame(animate);
+    } else {
+      drawArc(targetAngle);
+    }
+  }
+  drawArc(curAngle);
+  requestAnimationFrame(animate);
+}
+
+function animateNumber(el, target) {
+  let cur = 0;
+  const step = target / 40;
+  const interval = setInterval(() => {
+    cur = Math.min(cur + step, target);
+    el.textContent = Math.round(cur);
+    if (cur >= target) clearInterval(interval);
+  }, 30);
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.textContent = orig; }, 2000);
+  });
+}
+</script>
+{% endblock %}
