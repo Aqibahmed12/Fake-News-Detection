@@ -18,4 +18,5 @@ if __name__ == "__main__":
         train_and_save(app.config["MODELS_DIR"], app.config["DATA_DIR"])
         print("[Startup] Model training complete.")
 
-    app.run(debug=True, host="0.0.0.0", port=5000)
+
+app.run(debug=True, host="0.0.0.0", port=5000)
