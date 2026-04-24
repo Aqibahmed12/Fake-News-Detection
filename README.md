@@ -9,7 +9,7 @@
 [![XGBoost](https://img.shields.io/badge/XGBoost-%20-blue)](#)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](#)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
-
+ 
 At an era where misinformation spreads faster than truth, **Real-Time Fake News Detection** offers an API-first approach to content moderation and journalistic verification. Powered by advanced **Natural Language Processing (NLP)** and ensemble tree models, this platform analyzes structure, sentiment, and context to deliver actionable credibility metrics.
 
 </div>
