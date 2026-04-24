@@ -46,8 +46,7 @@ Clone the repository, verify your configurations, and install the required depen
 
 ```bash
 # Clone the repository
-git clone <repository_url>
-cd <repository_folder>
+git clone <https://github.com/Aqibahmed12/Fake-News-Detection/>
 
 # Install application dependencies via pip
 pip install -r requirements.txt
